@@ -13,7 +13,7 @@ public class App {
         BallisticsCalculator calculator = new BallisticsCalculator();
 
         // simulate as we travel away from the target, the range will increase 
-        // in increments of 0.1 meters (approx. 6m/s), so we can print the best launch parameter for each range increment
+        // in increments of 0.1 meters (approx. 5m/s), so we can print the best launch parameter for each range increment
         // calculate how many increments of 0.1 meters there are between 0.5 and 20 meters to prevent floating point errors
         int counts = (int) ((20 - 0.5) / 0.1); 
         for (int count = 0; count <= counts; count++) {
