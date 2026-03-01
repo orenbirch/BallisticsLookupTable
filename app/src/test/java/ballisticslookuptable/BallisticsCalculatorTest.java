@@ -101,7 +101,8 @@ class BallisticsCalculatorTest {
         // This test relies on internal behavior - getLookupTable regenerates if empty
         TreeMap<Double, LaunchParameter> table = calculator.getLookupTable();
         int originalSize = table.size();
-        
+        assertTrue(originalSize > 0, "Table should initially have entries");
+
         // Clear and call again (if implementation allows)
         TreeMap<Double, LaunchParameter> tableAgain = calculator.getLookupTable();
         
