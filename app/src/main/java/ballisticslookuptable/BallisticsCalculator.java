@@ -106,7 +106,9 @@ public class BallisticsCalculator {
             if (bestParam != null) {
                 lookupTable.put(range, bestParam);
             } else {
-                System.err.println("Warning: No valid trajectory found for range " + range);
+                // TODO: we could consider adding a default parameter for ranges that don't have a valid trajectory, 
+                // for now we will just skip them and they will return null when queried
+                //System.err.println("Warning: No valid trajectory found for range " + range);
             }
         }
     }

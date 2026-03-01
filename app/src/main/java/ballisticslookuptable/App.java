@@ -3,7 +3,7 @@ package ballisticslookuptable;
 public class App {
 
     public String getGreeting() {
-        return "Hello World!";
+        return "Ballistics Lookup Table Demo: each output line shows a target range (meters) and the best launch settings; higher score means a better trajectory for that range.";
     }
 
     public static void main(String[] args) {
@@ -11,6 +11,11 @@ public class App {
 
         // generate the lookup table
         BallisticsCalculator calculator = new BallisticsCalculator();
+
+        // Print table header
+        System.out.println("\n" + String.format("%-10s %-12s %-14s %-13s %-12s %-14s %-8s", 
+            "Range (m)", "Angle (deg)", "Velocity (m/s)", "Impact (deg)", "Height (m)", "Flight (s)", "Score"));
+        System.out.println("=".repeat(95));
 
         // simulate as we travel away from the target, the range will increase 
         // in increments of 0.1 meters (approx. 5m/s), so we can print the best launch parameter for each range increment
@@ -23,7 +28,14 @@ public class App {
             LaunchParameter param = calculator.getBestLaunchParameter(simulatedRange); // or real range from drive subsystem
 
             if (param != null) {
-                System.out.println("Range: " + String.format("%.2f", simulatedRange) + " meters, Best Launch Parameter: " + param);
+                System.out.println(String.format("%-10.2f %-12.2f %-14.2f %-13.2f %-12.2f %-14.2f %-8.2f",
+                    param.getRangeMeters(),
+                    param.getLaunchAngleDeg(),
+                    param.getLaunchVelocityMps(),
+                    param.getImpactAngleDeg(),
+                    param.getPeakHeightMeters(),
+                    param.getTimeOfFlightSeconds(),
+                    param.getScore()));
             }
         }
     }
