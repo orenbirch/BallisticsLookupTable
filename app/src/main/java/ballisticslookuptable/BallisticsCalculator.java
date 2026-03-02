@@ -13,22 +13,25 @@ import java.util.TreeMap;
 public class BallisticsCalculator {
 
     // TreeMap to store the best launch parameter for each range increment, the key is the range in meters and the value is the best launch parameter for that range
-    private  TreeMap<Double, LaunchParameter> lookupTable = new TreeMap<>();
-
-    private final double MAX_PEAK_HEIGHT = 3; // meters
-    private final double MIN_PEAK_HEIGHT = 1.2; // meters
-    private final double MIN_IMPACT_ANGLE = -30; // degrees 
-    private final double MIN_RANGE = 0.5; // meters
-    private final double MAX_RANGE = 20; // meters
-    private final double RANGE_STEP = 0.25; // meters
-    private final double ANGLE_STEP = 1; // degrees 
-    private static final double TARGET_ELEVATION_METERS = 1.0;
-
-    // weights for scoring different trajectories - these can be adjusted to prioritize different factors they should sum to 1
-    private static final double impactAngleWeight = 0.75;
-    private static final double timeOfFlightWeight = 0.25;
+    private TreeMap<Double, LaunchParameter> lookupTable = new TreeMap<>();
     
+    // Configuration instance containing all constraints and parameters
+    private final BallisticsConfig config;
+    
+    /**
+     * Creates a BallisticsCalculator with default configuration.
+     */
     public BallisticsCalculator() {
+        this(new BallisticsConfig());
+    }
+    
+    /**
+     * Creates a BallisticsCalculator with custom configuration.
+     * @param config Configuration object containing all ballistics parameters
+     */
+    public BallisticsCalculator(BallisticsConfig config) {
+        this.config = config;
+        config.validate();
         generateLookupTable();
     }
 
@@ -40,21 +43,21 @@ public class BallisticsCalculator {
     }
 
     private void generateLookupTable() {
-        for (double range = MIN_RANGE; range <= MAX_RANGE; range += RANGE_STEP) {
+        for (double range = config.getMinRange(); range <= config.getMaxRange(); range += config.getRangeStep()) {
             List<LaunchParameter> parameters = new ArrayList<LaunchParameter>();
             LaunchParameter bestParam = null;
-            for (double angle = 0; angle <= 90; angle += ANGLE_STEP) {
-                LaunchParameter param = new LaunchParameter(angle, range, TARGET_ELEVATION_METERS);
-                if (param.getLaunchVelocityMps() <= 0) {
+            for (double angle = config.getMinLaunchAngleDeg(); angle <= config.getMaxLaunchAngleDeg(); angle += config.getAngleStep()) {
+                LaunchParameter param = new LaunchParameter(angle, range, config.getTargetElevationMeters());
+                if (param.getLaunchVelocityMps() <= config.getMinLaunchVelocityMps() || param.getLaunchVelocityMps() > config.getMaxLaunchVelocityMps()) {
                     continue; // Skip trajectories that are not physically possible
                 }
-                if (param.getImpactAngleDeg() > MIN_IMPACT_ANGLE){
+                if (param.getImpactAngleDeg() > config.getMinImpactAngle()){
                     continue; // Skip trajectories that are too shallow 
                 }
-                if ( param.getPeakHeightMeters() > MAX_PEAK_HEIGHT){
+                if ( param.getPeakHeightMeters() > config.getMaxPeakHeight()){
                     continue; // Skip trajectories that are too high
                 }
-                if ( param.getPeakHeightMeters() < MIN_PEAK_HEIGHT){
+                if ( param.getPeakHeightMeters() < config.getMinPeakHeight()){
                     continue; // Skip trajectories that are too low
                 }
                 parameters.add(param);
@@ -97,7 +100,7 @@ public class BallisticsCalculator {
                     //normalizedTimeOfFlight = (launchParameter.getTimeOfFlightSeconds() - minTimeOfFlight) / (maxTimeOfFlight - minTimeOfFlight);
                     normalizedTimeOfFlight = (maxTimeOfFlight - launchParameter.getTimeOfFlightSeconds()) / (maxTimeOfFlight - minTimeOfFlight);
                 }   
-                double score = (normalizedImpactAngle * impactAngleWeight) + (normalizedTimeOfFlight * timeOfFlightWeight);
+                double score = (normalizedImpactAngle * config.getImpactAngleWeight()) + (normalizedTimeOfFlight * config.getTimeOfFlightWeight());
                 launchParameter.setScore(score);
                 if (bestParam == null || launchParameter.getScore() > bestParam.getScore()) {
                     bestParam = launchParameter;
