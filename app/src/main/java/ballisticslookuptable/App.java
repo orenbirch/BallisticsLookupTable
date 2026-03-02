@@ -11,19 +11,23 @@ public class App {
 
         // create a configuration for the calculator
         BallisticsConfig config = new BallisticsConfig()
+            // simulation parameters
             .setMinRange(0.5)
             .setMaxRange(20)
             .setRangeStep(0.1)
+            .setAngleStep(1)
+            .setMinImpactAngle(-25)
+            .setImpactAngleWeight(0.75) // weight for impact angle in scoring
+            .setTimeOfFlightWeight(0.25) // weight for time of flight in scoring
+            // target parameters
+            .setTargetElevationMeters(1) // 0.0 is at the same height as the launcher, negative means target is below launcher
+            .setMinPeakHeight(1.2) 
+            .setMaxPeakHeight(3) // height above launch point
+            // robot constraints
             .setMinLaunchAngleDeg(10)
             .setMaxLaunchAngleDeg(80)
-            .setAngleStep(1)
-            .setTargetElevationMeters(-0.6) // 0.0 is at the same height as the launcher, negative means target is below launcher
-            .setMinPeakHeight(0) 
-            .setMaxPeakHeight(3) // height above launch point
             .setMaxLaunchVelocityMps(15) // max velocity constraint for shooter mechanism
-            .setMinLaunchVelocityMps(2) // min velocity constraint for shooter mechanism
-            .setImpactAngleWeight(0.75) // weight for impact angle in scoring
-            .setTimeOfFlightWeight(0.25); // weight for time of flight in scoring
+            .setMinLaunchVelocityMps(2); // min velocity constraint for shooter mechanism
 
         // generate the lookup table
         BallisticsCalculator calculator = new BallisticsCalculator(config);
