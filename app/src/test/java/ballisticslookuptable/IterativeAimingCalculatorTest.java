@@ -62,7 +62,7 @@ class IterativeAimingCalculatorTest {
         double targetY = 5.0;
         double robotX = 0.0;
         double robotY = 0.0;
-        double timeOfFlight = 0.5; // 0.5 seconds
+        double timeOfFlight = 0.5; // 0.5 second
         
         IterativeAimingCalculator.Coordinate predicted = aimer.predictTarget(
             0.0, 0.0,  // target velocity
@@ -221,7 +221,7 @@ class IterativeAimingCalculatorTest {
     void testIterativePredictiveAim_MovingTarget() {
         double targetX = 10.0;
         double targetY = 0.0;
-        double targetVelX = 2.0;  // Moving away
+        double targetVelY = 2.0;  // Moving laterally
         double timeOfFlight = 0.5;
         
         double aimAngleStatic = aimer.iterativePredictiveAim(
@@ -234,7 +234,7 @@ class IterativeAimingCalculatorTest {
         );
         
         double aimAngleMoving = aimer.iterativePredictiveAim(
-            targetVelX, 0.0,
+            0.0, targetVelY,
             targetX, targetY,
             0.0, 0.0,
             0.0, 0.0,
@@ -378,9 +378,12 @@ class IterativeAimingCalculatorTest {
             5
         );
         
+        // Normalize because atan2 may return equivalent angles in [-180, 180]
+        double normalizedAimAngle = (aimAngle + 360) % 360;
+
         // Should aim into third quadrant (~225°)
-        assertTrue(aimAngle >= 200 && aimAngle <= 250,
-                  "Angle for negative coordinates should be ~225°, got " + aimAngle);
+        assertTrue(normalizedAimAngle >= 200 && normalizedAimAngle <= 250,
+                  "Angle for negative coordinates should be ~225° (or -135°), got " + aimAngle);
     }
 
     // ==================== Physics Validation Tests ====================

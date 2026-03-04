@@ -20,6 +20,9 @@ public class IterativeAimingCalculator {
      * @param ballisticsCalculator Calculator containing the lookup table for time-of-flight queries
      */
     public IterativeAimingCalculator(BallisticsCalculator ballisticsCalculator) {
+        if (ballisticsCalculator == null) {
+            throw new NullPointerException("BallisticsCalculator cannot be null");
+        }
         this.ballisticsCalculator = ballisticsCalculator;
     }
     
@@ -50,14 +53,18 @@ public class IterativeAimingCalculator {
         double robotPositionX, double robotPositionY,
         double timeOfFlightSeconds
     ) {
+        if (timeOfFlightSeconds < 0) {
+            throw new IllegalArgumentException("timeOfFlightSeconds must be >= 0");
+        }
+
         double distanceX = targetPositionX - robotPositionX;
         double distanceY = targetPositionY - robotPositionY;
         
         double velocityX = targetVelocityX - robotVelocityX;
         double velocityY = targetVelocityY - robotVelocityY;
         
-        double virtualX = velocityX + distanceX / timeOfFlightSeconds;
-        double virtualY = velocityY + distanceY / timeOfFlightSeconds;
+        double virtualX = distanceX + (velocityX * timeOfFlightSeconds);
+        double virtualY = distanceY + (velocityY * timeOfFlightSeconds);
         
         return new Coordinate(virtualX, virtualY);
     }
@@ -114,6 +121,24 @@ public class IterativeAimingCalculator {
                 Math.pow(predictedTarget.x, 2) + 
                 Math.pow(predictedTarget.y, 2)
             );
+
+            double minSupportedRange = ballisticsCalculator.getLookupTable().firstKey();
+            double maxSupportedRange = ballisticsCalculator.getLookupTable().lastKey();
+            double supportedRangeTolerance = 0.0;
+            if (ballisticsCalculator.getLookupTable().size() > 1) {
+                Double secondKey = ballisticsCalculator.getLookupTable().higherKey(minSupportedRange);
+                if (secondKey != null) {
+                    supportedRangeTolerance = Math.abs(secondKey - minSupportedRange);
+                }
+            }
+
+            if (distanceToPredictedTarget < minSupportedRange - supportedRangeTolerance ||
+                distanceToPredictedTarget > maxSupportedRange + supportedRangeTolerance) {
+                throw new IllegalArgumentException(
+                    "No valid trajectory found for predicted range: " + distanceToPredictedTarget +
+                    " meters (supported range: " + minSupportedRange + " to " + maxSupportedRange + " m)"
+                );
+            }
             
             // Check for convergence (distance changes less than 1cm between iterations)
             if (Math.abs(distanceToPredictedTarget - previousDistance) < 0.01) {
