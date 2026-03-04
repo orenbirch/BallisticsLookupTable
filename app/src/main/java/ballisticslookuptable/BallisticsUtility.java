@@ -164,4 +164,109 @@ public class BallisticsUtility {
         return Math.sqrt(velocitySquared);
     }
 
+    // /**
+    //  * Predictive aiming calculation to determine the angle to aim at a moving target, given the target's 
+    //  * velocity and position, the robot's velocity and position, and the time of flight of the projectile.
+    //  * @param targetVelocityX Velocity of the target in the X direction (m/s)
+    //  * @param targetVelocityY Velocity of the target in the Y direction (m/s)
+    //  * @param targetPositionX X position of the target (m)
+    //  * @param targetPositionY Y position of the target (m)
+    //  * @param robotVelocityX Velocity of the robot in the X direction (m/s)
+    //  * @param robotVelocityY Velocity of the robot in the Y direction (m/s)
+    //  * @param robotPositionX X position of the robot (m)
+    //  * @param robotPositionY Y position of the robot (m)
+    //  * @param timeOfFlightSeconds Time of flight of the projectile (s)
+    //  * @return Angle to aim at the moving target (degrees)
+    //  */
+    // public static double predictiveAim(
+    //     double targetVelocityX, double targetVelocityY,
+    //     double targetPositionX, double targetPositionY,
+    //     double robotVelocityX, double robotVelocityY,
+    //     double robotPositionX, double robotPositionY,
+    //     double timeOfFlightSeconds
+    // ) {
+    //     Double distanceX = targetPositionX - robotPositionX;
+    //     Double distanceY = targetPositionY - robotPositionY;
+        
+    //     Double velocityX = targetVelocityX - robotVelocityX;
+    //     Double velocityY = targetVelocityY - robotVelocityY;
+
+    //     Double virtualX = velocityX + distanceX / timeOfFlightSeconds;
+    //     Double virtualY = velocityY + distanceY / timeOfFlightSeconds;
+
+    //     // calculate angle to virtual target
+    //     Double headingToVirtualTarget = Math.atan2(virtualY, virtualX);
+    //     headingToVirtualTarget = Math.toDegrees(headingToVirtualTarget);
+    //     return headingToVirtualTarget;
+    // }
+
+    // public record Coordinate(double x, double y) {};
+
+    // public static Coordinate predictTarget(
+    //     double targetVelocityX, double targetVelocityY,
+    //     double targetPositionX, double targetPositionY,
+    //     double robotVelocityX, double robotVelocityY,
+    //     double robotPositionX, double robotPositionY,
+    //     double timeOfFlightSeconds
+    // ) {
+    //     Double distanceX = targetPositionX - robotPositionX;
+    //     Double distanceY = targetPositionY - robotPositionY;
+        
+    //     Double velocityX = targetVelocityX - robotVelocityX;
+    //     Double velocityY = targetVelocityY - robotVelocityY;
+
+    //     Double virtualX = velocityX + distanceX / timeOfFlightSeconds;
+    //     Double virtualY = velocityY + distanceY / timeOfFlightSeconds;
+    //     return new Coordinate(virtualX, virtualY);
+    // }
+
+    // /**
+    //  * Iterative predictive aiming calculation using hardcoded physics parameters.
+    //  * 
+    //  * @deprecated Use {@link IterativeAimingCalculator} instead. This static method uses hardcoded
+    //  * angle and velocity values for time-of-flight calculations. The new class uses a ballistics
+    //  * lookup table that respects actual system constraints and converges more accurately.
+    //  * 
+    //  * @param targetVelocityX Velocity of the target in the X direction (m/s)
+    //  * @param targetVelocityY Velocity of the target in the Y direction (m/s)
+    //  * @param targetPositionX X position of the target (m)
+    //  * @param targetPositionY Y position of the target (m)
+    //  * @param robotVelocityX Velocity of the robot in the X direction (m/s)
+    //  * @param robotVelocityY Velocity of the robot in the Y direction (m/s)
+    //  * @param robotPositionX X position of the robot (m)
+    //  * @param robotPositionY Y position of the robot (m)
+    //  * @param initialTimeOfFlightSeconds Time of flight of the projectile (s)
+    //  * @param iterations Number of iterations for convergence
+    //  * @return Angle to aim at the moving target (degrees)
+    //  */
+    // @Deprecated(since = "2.0", forRemoval = true)
+    // public static double interativePredictiveAim(
+    //     double targetVelocityX, double targetVelocityY,
+    //     double targetPositionX, double targetPositionY,
+    //     double robotVelocityX, double robotVelocityY,
+    //     double robotPositionX, double robotPositionY,
+    //     double initialTimeOfFlightSeconds,
+    //     int iterations
+    // ) {
+    //     double timeOfFlight = initialTimeOfFlightSeconds;
+    //     Coordinate predictedTarget = null;
+    //     for (int i = 0; i < iterations; i++) {
+    //         predictedTarget = predictTarget(
+    //             targetVelocityX, targetVelocityY,
+    //             targetPositionX, targetPositionY,
+    //             robotVelocityX, robotVelocityY,
+    //             robotPositionX, robotPositionY,
+    //             timeOfFlight
+    //         );
+    //         double distanceToPredictedTarget = Math.sqrt(Math.pow(predictedTarget.x - robotPositionX, 2) + Math.pow(predictedTarget.y - robotPositionY, 2));
+    //         // Hardcoded parameters - this is why this method is deprecated
+    //         // Use IterativeAimingCalculator instead for lookup table based calculations
+    //         timeOfFlight = calculateFlightTimeFromRange(distanceToPredictedTarget, 0, 45, 10);
+    //     }
+    //     // calculate angle to virtual target
+    //     Double headingToVirtualTarget = Math.atan2(predictedTarget.y, predictedTarget.x);
+    //     headingToVirtualTarget = Math.toDegrees(headingToVirtualTarget);
+    //     return headingToVirtualTarget;
+    // }   
+
 }

@@ -58,5 +58,47 @@ public class App {
                     param.getScore()));
             }
         }
+        
+        // Demonstrate the new IterativeAimingCalculator using the lookup table
+        System.out.println("\n" + "=".repeat(95));
+        System.out.println("Predictive Aiming Example: Hitting a Moving Target");
+        System.out.println("=".repeat(95));
+        
+        // Create an aiming calculator with our ballistics lookup table
+        IterativeAimingCalculator aimer = new IterativeAimingCalculator(calculator);
+        
+        // Simulate a moving target scenario
+        double targetPosX = 10.0;   // 10 meters away
+        double targetPosY = 5.0;    // 5 meters to the side
+        double targetVelX = 2.0;    // Target moving at 2 m/s in X direction
+        double targetVelY = 1.0;    // Target moving at 1 m/s in Y direction
+        
+        double robotPosX = 0.0;     // Robot at origin
+        double robotPosY = 0.0;
+        double robotVelX = 0.0;     // Robot stationary
+        double robotVelY = 0.0;
+        
+        double initialRangeEstimate = Math.sqrt(targetPosX * targetPosX + targetPosY * targetPosY);
+        LaunchParameter initialEstimate = calculator.getBestLaunchParameter(initialRangeEstimate);
+        
+        if (initialEstimate != null) {
+            try {
+                double aimAngle = aimer.iterativePredictiveAim(
+                    targetVelX, targetVelY,
+                    targetPosX, targetPosY,
+                    robotVelX, robotVelY,
+                    robotPosX, robotPosY,
+                    initialEstimate.getTimeOfFlightSeconds(),
+                    10  // Maximum 10 iterations for convergence
+                );
+                
+                System.out.println("Target Position: (" + String.format("%.2f", targetPosX) + ", " + String.format("%.2f", targetPosY) + ") meters");
+                System.out.println("Target Velocity: (" + String.format("%.2f", targetVelX) + ", " + String.format("%.2f", targetVelY) + ") m/s");
+                System.out.println("Aim Angle: " + String.format("%.2f", aimAngle) + " degrees");
+                System.out.println("(Using iterative lookup table convergence)");
+            } catch (IllegalArgumentException e) {
+                System.out.println("Error: " + e.getMessage());
+            }
+        }
     }
 }
