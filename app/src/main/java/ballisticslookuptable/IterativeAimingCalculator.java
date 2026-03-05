@@ -1,5 +1,34 @@
 package ballisticslookuptable;
-
+/** 
+ * 
+ * 
+ * WARNING!!!! This is a work in progress
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * WARNING!!!! This is a work in progress
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * WARNING!!!! This is a work in progress
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * WARNING!!!! This is a work in progress
+ * 
+ * 
+ */
 /**
  * Handles iterative predictive aiming for moving targets using a ballistics lookup table.
  * 
