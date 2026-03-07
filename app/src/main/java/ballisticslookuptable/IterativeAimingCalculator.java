@@ -1,4 +1,7 @@
 package ballisticslookuptable;
+
+import java.util.Optional;
+import java.util.OptionalDouble;
 /** 
  * 
  * 
@@ -50,9 +53,6 @@ public class IterativeAimingCalculator {
      * @param ballisticsCalculator Calculator containing the lookup table for time-of-flight queries
      */
     public IterativeAimingCalculator(BallisticsCalculator ballisticsCalculator) {
-        if (ballisticsCalculator == null) {
-            throw new NullPointerException("BallisticsCalculator cannot be null");
-        }
         this.ballisticsCalculator = ballisticsCalculator;
     }
     
@@ -74,10 +74,10 @@ public class IterativeAimingCalculator {
      * @param robotPositionX Robot X position (m)
      * @param robotPositionY Robot Y position (m)
      * @param timeOfFlightSeconds Time of flight (seconds)
-     * @return Predicted target coordinates relative to robot
+    * @return Optional predicted target coordinates relative to robot
     * Time complexity: O(1).
      */
-    public Coordinate predictTarget(
+    public Optional<Coordinate> predictTarget(
         double targetVelocityX, double targetVelocityY,
         double targetPositionX, double targetPositionY,
         double robotVelocityX, double robotVelocityY,
@@ -85,7 +85,7 @@ public class IterativeAimingCalculator {
         double timeOfFlightSeconds
     ) {
         if (timeOfFlightSeconds < 0) {
-            throw new IllegalArgumentException("timeOfFlightSeconds must be >= 0");
+            return Optional.empty();
         }
 
         double distanceX = targetPositionX - robotPositionX;
@@ -97,7 +97,7 @@ public class IterativeAimingCalculator {
         double virtualX = distanceX + (velocityX * timeOfFlightSeconds);
         double virtualY = distanceY + (velocityY * timeOfFlightSeconds);
         
-        return new Coordinate(virtualX, virtualY);
+        return Optional.of(new Coordinate(virtualX, virtualY));
     }
 
     /**
@@ -123,10 +123,10 @@ public class IterativeAimingCalculator {
      * @param robotPositionY Robot Y position (m)
      * @param initialTimeOfFlightSeconds Initial time of flight estimate (seconds)
      * @param maxIterations Maximum number of iterations for convergence
-     * @return Predicted target coordinates relative to robot
+    * @return Optional predicted target coordinates relative to robot
     * Time complexity: O(I * log N).
      */
-    public Coordinate interativePredictCoordinate(
+    public Optional<Coordinate> interativePredictCoordinate(
         double targetVelocityX, double targetVelocityY,
         double targetPositionX, double targetPositionY,
         double robotVelocityX, double robotVelocityY,
@@ -134,19 +134,26 @@ public class IterativeAimingCalculator {
         double initialTimeOfFlightSeconds,
         int maxIterations
     ){
+        if (!isReadyForPrediction() || maxIterations <= 0 || initialTimeOfFlightSeconds < 0) {
+            return Optional.empty();
+        }
         double timeOfFlight = initialTimeOfFlightSeconds;
         Coordinate predictedTarget = null;
         double previousDistance = Double.MAX_VALUE;
         
         for (int iteration = 0; iteration < maxIterations; iteration++) {
             // Predict where the target will be at the current time of flight
-            predictedTarget = predictTarget(
+            Optional<Coordinate> predictedTargetOptional = predictTarget(
                 targetVelocityX, targetVelocityY,
                 targetPositionX, targetPositionY,
                 robotVelocityX, robotVelocityY,
                 robotPositionX, robotPositionY,
                 timeOfFlight
             );
+            if (predictedTargetOptional.isEmpty()) {
+                return Optional.empty();
+            }
+            predictedTarget = predictedTargetOptional.get();
             
             // Calculate distance from robot to predicted target
             double distanceToPredictedTarget = Math.sqrt(
@@ -166,10 +173,7 @@ public class IterativeAimingCalculator {
 
             if (distanceToPredictedTarget < minSupportedRange - supportedRangeTolerance ||
                 distanceToPredictedTarget > maxSupportedRange + supportedRangeTolerance) {
-                throw new IllegalArgumentException(
-                    "No valid trajectory found for predicted range: " + distanceToPredictedTarget +
-                    " meters (supported range: " + minSupportedRange + " to " + maxSupportedRange + " m)"
-                );
+                return Optional.empty();
             }
             
             // Check for convergence (distance changes less than 1cm between iterations)
@@ -182,19 +186,14 @@ public class IterativeAimingCalculator {
             LaunchParameter bestParam = ballisticsCalculator.getBestLaunchParameter(distanceToPredictedTarget);
             
             if (bestParam == null) {
-                throw new IllegalArgumentException(
-                    "No valid trajectory found for predicted range: " + distanceToPredictedTarget + " meters"
-                );
+                return Optional.empty();
             }
             
             // Update time of flight for next iteration
             timeOfFlight = bestParam.getTimeOfFlightSeconds();
         }
         
-        if (predictedTarget == null) {
-            throw new IllegalStateException("No target prediction calculated");
-        }
-        return predictedTarget;
+        return Optional.ofNullable(predictedTarget);
     }
     
     /**
@@ -219,11 +218,10 @@ public class IterativeAimingCalculator {
      * @param robotPositionY Robot Y position (m)
      * @param initialTimeOfFlightSeconds Initial time of flight estimate (seconds)
      * @param maxIterations Maximum number of iterations for convergence
-     * @return Aiming angle in degrees (from +X axis)
-     * @throws IllegalArgumentException if no valid trajectory found for predicted range
+    * @return Optional aiming angle in degrees (from +X axis)
     * Time complexity: O(I * log N).
      */
-    public double iterativePredictiveAim(
+    public OptionalDouble iterativePredictiveAim(
         double targetVelocityX, double targetVelocityY,
         double targetPositionX, double targetPositionY,
         double robotVelocityX, double robotVelocityY,
@@ -231,19 +229,26 @@ public class IterativeAimingCalculator {
         double initialTimeOfFlightSeconds,
         int maxIterations
     ) {
+        if (!isReadyForPrediction() || maxIterations <= 0 || initialTimeOfFlightSeconds < 0) {
+            return OptionalDouble.empty();
+        }
         double timeOfFlight = initialTimeOfFlightSeconds;
         Coordinate predictedTarget = null;
         double previousDistance = Double.MAX_VALUE;
         
         for (int iteration = 0; iteration < maxIterations; iteration++) {
             // Predict where the target will be at the current time of flight
-            predictedTarget = predictTarget(
+            Optional<Coordinate> predictedTargetOptional = predictTarget(
                 targetVelocityX, targetVelocityY,
                 targetPositionX, targetPositionY,
                 robotVelocityX, robotVelocityY,
                 robotPositionX, robotPositionY,
                 timeOfFlight
             );
+            if (predictedTargetOptional.isEmpty()) {
+                return OptionalDouble.empty();
+            }
+            predictedTarget = predictedTargetOptional.get();
             
             // Calculate distance from robot to predicted target
             double distanceToPredictedTarget = Math.sqrt(
@@ -263,10 +268,7 @@ public class IterativeAimingCalculator {
 
             if (distanceToPredictedTarget < minSupportedRange - supportedRangeTolerance ||
                 distanceToPredictedTarget > maxSupportedRange + supportedRangeTolerance) {
-                throw new IllegalArgumentException(
-                    "No valid trajectory found for predicted range: " + distanceToPredictedTarget +
-                    " meters (supported range: " + minSupportedRange + " to " + maxSupportedRange + " m)"
-                );
+                return OptionalDouble.empty();
             }
             
             // Check for convergence (distance changes less than 1cm between iterations)
@@ -279,9 +281,7 @@ public class IterativeAimingCalculator {
             LaunchParameter bestParam = ballisticsCalculator.getBestLaunchParameter(distanceToPredictedTarget);
             
             if (bestParam == null) {
-                throw new IllegalArgumentException(
-                    "No valid trajectory found for predicted range: " + distanceToPredictedTarget + " meters"
-                );
+                return OptionalDouble.empty();
             }
             
             // Update time of flight for next iteration
@@ -289,20 +289,21 @@ public class IterativeAimingCalculator {
         }
         
         if (predictedTarget == null) {
-            throw new IllegalStateException("No target prediction calculated");
+            return OptionalDouble.empty();
         }
         
         // Calculate angle to the final predicted target position
         double headingToVirtualTarget = Math.atan2(predictedTarget.y, predictedTarget.x);
-        return Math.toDegrees(headingToVirtualTarget);
+        return OptionalDouble.of(Math.toDegrees(headingToVirtualTarget));
     }
     
     /**
      * Simplified variant that uses a default number of iterations.
      * @see #iterativePredictiveAim(double, double, double, double, double, double, double, double, double, int)
+    * @return Optional aiming angle in degrees (from +X axis)
         * Time complexity: O(log N) with a constant default iteration count.
      */
-    public double iterativePredictiveAim(
+    public OptionalDouble iterativePredictiveAim(
         double targetVelocityX, double targetVelocityY,
         double targetPositionX, double targetPositionY,
         double robotVelocityX, double robotVelocityY,
@@ -317,6 +318,12 @@ public class IterativeAimingCalculator {
             initialTimeOfFlightSeconds,
             10  // Default to 10 iterations for convergence
         );
+    }
+
+    private boolean isReadyForPrediction() {
+        return ballisticsCalculator != null
+            && ballisticsCalculator.getValidationError().isEmpty()
+            && !ballisticsCalculator.getLookupTable().isEmpty();
     }
 }
  

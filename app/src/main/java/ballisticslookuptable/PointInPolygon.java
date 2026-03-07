@@ -1,6 +1,7 @@
 package ballisticslookuptable;
 
 import java.util.List;
+import java.util.Optional;
 
 public class PointInPolygon {
 
@@ -31,11 +32,18 @@ public class PointInPolygon {
      * The last vertex is implicitly connected back to the first.
      */
     public record Polygon(List<Point> vertices) {
-        public Polygon {
-            if (vertices == null || vertices.size() < 3) {
-                throw new IllegalArgumentException("A polygon must have at least 3 vertices.");
-            }
+    }
+
+    /**
+     * Creates a polygon if the vertex list is valid (at least 3 points).
+     * @param vertices ordered list of polygon vertices
+     * @return Optional polygon instance if valid
+     */
+    public static Optional<Polygon> createPolygon(List<Point> vertices) {
+        if (vertices == null || vertices.size() < 3) {
+            return Optional.empty();
         }
+        return Optional.of(new Polygon(vertices));
     }
 
     /**

@@ -1,5 +1,7 @@
 package ballisticslookuptable;
 
+import java.util.Optional;
+
 /**
  * Configuration class for BallisticsCalculator.
  * Supports setter chaining (builder pattern) for convenient configuration.
@@ -254,29 +256,30 @@ public class BallisticsConfig {
     
     /**
      * Validates that the configuration values are reasonable.
-     * @throws IllegalStateException if configuration is invalid
+     * @return Optional error message if configuration is invalid
      */
-    public void validate() {
+    public Optional<String> validate() {
         if (minRange >= maxRange) {
-            throw new IllegalStateException("minRange must be less than maxRange");
+            return Optional.of("minRange must be less than maxRange");
         }
         if (rangeStep <= 0) {
-            throw new IllegalStateException("rangeStep must be positive");
+            return Optional.of("rangeStep must be positive");
         }
         if (angleStep <= 0) {
-            throw new IllegalStateException("angleStep must be positive");
+            return Optional.of("angleStep must be positive");
         }
         if (minPeakHeight >= maxPeakHeight) {
-            throw new IllegalStateException("minPeakHeight must be less than maxPeakHeight");
+            return Optional.of("minPeakHeight must be less than maxPeakHeight");
         }
         if (minLaunchAngleDeg >= maxLaunchAngleDeg) {
-            throw new IllegalStateException("minLaunchAngleDeg must be less than maxLaunchAngleDeg");
+            return Optional.of("minLaunchAngleDeg must be less than maxLaunchAngleDeg");
         }
         if (minLaunchVelocityMps >= maxLaunchVelocityMps) {
-            throw new IllegalStateException("minLaunchVelocityMps must be less than maxLaunchVelocityMps");
+            return Optional.of("minLaunchVelocityMps must be less than maxLaunchVelocityMps");
         }
         if (Math.abs(impactAngleWeight + timeOfFlightWeight - 1.0) > 0.01) {
-            throw new IllegalStateException("impactAngleWeight and timeOfFlightWeight must sum to 1.0");
+            return Optional.of("impactAngleWeight and timeOfFlightWeight must sum to 1.0");
         }
+        return Optional.empty();
     }
 }

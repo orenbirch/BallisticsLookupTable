@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import static org.junit.jupiter.api.Assertions.*;
+import java.util.Optional;
+import java.util.OptionalDouble;
 
 /**
  * Comprehensive tests for IterativeAimingCalculator.
@@ -48,9 +50,8 @@ class IterativeAimingCalculatorTest {
     @Test
     @DisplayName("Constructor should not accept null calculator")
     void testConstructor_NullCalculator() {
-        assertThrows(NullPointerException.class, 
-                    () -> new IterativeAimingCalculator(null),
-                    "Should reject null calculator");
+        IterativeAimingCalculator nullAimer = new IterativeAimingCalculator(null);
+        assertNotNull(nullAimer, "Aimer should be created even with null calculator");
     }
 
     // ==================== predictTarget Tests ====================
@@ -64,7 +65,7 @@ class IterativeAimingCalculatorTest {
         double robotY = 0.0;
         double timeOfFlight = 0.5; // 0.5 second
         
-        IterativeAimingCalculator.Coordinate predicted = aimer.predictTarget(
+        Optional<IterativeAimingCalculator.Coordinate> predicted = aimer.predictTarget(
             0.0, 0.0,  // target velocity
             targetX, targetY,  // target position
             0.0, 0.0,  // robot velocity
@@ -73,8 +74,9 @@ class IterativeAimingCalculatorTest {
         );
         
         // With no velocities, target stays at same relative position
-        assertEquals(targetX, predicted.x(), DELTA);
-        assertEquals(targetY, predicted.y(), DELTA);
+        assertTrue(predicted.isPresent(), "Prediction should be available");
+        assertEquals(targetX, predicted.get().x(), DELTA);
+        assertEquals(targetY, predicted.get().y(), DELTA);
     }
 
     @Test
@@ -87,7 +89,7 @@ class IterativeAimingCalculatorTest {
         double robotY = 0.0;
         double timeOfFlight = 1.0; // 1 second
         
-        IterativeAimingCalculator.Coordinate predicted = aimer.predictTarget(
+        Optional<IterativeAimingCalculator.Coordinate> predicted = aimer.predictTarget(
             targetVelX, 0.0,
             targetX, targetY,
             0.0, 0.0,
@@ -96,7 +98,8 @@ class IterativeAimingCalculatorTest {
         );
         
         // Target moves 2m in 1 second
-        assertTrue(predicted.x() > targetX, "Target should be further ahead");
+        assertTrue(predicted.isPresent(), "Prediction should be available");
+        assertTrue(predicted.get().x() > targetX, "Target should be further ahead");
     }
 
     @Test
@@ -109,7 +112,7 @@ class IterativeAimingCalculatorTest {
         double robotVelX = 3.0;  // Robot moving 3 m/s in X
         double timeOfFlight = 1.0;
         
-        IterativeAimingCalculator.Coordinate predicted1 = aimer.predictTarget(
+        Optional<IterativeAimingCalculator.Coordinate> predicted1 = aimer.predictTarget(
             0.0, 0.0,
             targetX, targetY,
             0.0, 0.0,
@@ -117,7 +120,7 @@ class IterativeAimingCalculatorTest {
             timeOfFlight
         );
         
-        IterativeAimingCalculator.Coordinate predicted2 = aimer.predictTarget(
+        Optional<IterativeAimingCalculator.Coordinate> predicted2 = aimer.predictTarget(
             0.0, 0.0,
             targetX, targetY,
             robotVelX, 0.0,
@@ -126,7 +129,9 @@ class IterativeAimingCalculatorTest {
         );
         
         // Moving robot should result in closer predicted target
-        assertTrue(predicted1.x() > predicted2.x(), "Moving robot should reduce predicted distance");
+        assertTrue(predicted1.isPresent(), "Prediction should be available");
+        assertTrue(predicted2.isPresent(), "Prediction should be available");
+        assertTrue(predicted1.get().x() > predicted2.get().x(), "Moving robot should reduce predicted distance");
     }
 
     @Test
@@ -138,7 +143,7 @@ class IterativeAimingCalculatorTest {
         double targetVelY = 2.0;
         double timeOfFlight = 1.0;
         
-        IterativeAimingCalculator.Coordinate predicted = aimer.predictTarget(
+        Optional<IterativeAimingCalculator.Coordinate> predicted = aimer.predictTarget(
             targetVelX, targetVelY,
             targetX, targetY,
             0.0, 0.0,
@@ -147,8 +152,9 @@ class IterativeAimingCalculatorTest {
         );
         
         // Target should move in both dimensions
-        assertTrue(predicted.x() > targetX, "Should move in X");
-        assertTrue(predicted.y() > targetY, "Should move in Y");
+        assertTrue(predicted.isPresent(), "Prediction should be available");
+        assertTrue(predicted.get().x() > targetX, "Should move in X");
+        assertTrue(predicted.get().y() > targetY, "Should move in Y");
     }
 
     @Test
@@ -157,7 +163,7 @@ class IterativeAimingCalculatorTest {
         double targetX = 15.0;
         double targetY = 8.0;
         
-        IterativeAimingCalculator.Coordinate predicted = aimer.predictTarget(
+        Optional<IterativeAimingCalculator.Coordinate> predicted = aimer.predictTarget(
             5.0, 3.0,
             targetX, targetY,
             1.0, 1.0,
@@ -167,7 +173,7 @@ class IterativeAimingCalculatorTest {
         
         // With zero flight time, no movement (but division by zero would be issue)
         // This tests edge case handling
-        assertNotNull(predicted, "Should handle zero time gracefully");
+        assertTrue(predicted.isPresent(), "Should handle zero time gracefully");
     }
 
     // ==================== iterativePredictiveAim Tests ====================
@@ -179,7 +185,7 @@ class IterativeAimingCalculatorTest {
         double targetY = 0.0;
         double timeOfFlight = 0.5;
         
-        double aimAngle = aimer.iterativePredictiveAim(
+        OptionalDouble aimAngle = aimer.iterativePredictiveAim(
             0.0, 0.0,  // stationary target
             targetX, targetY,
             0.0, 0.0,  // stationary robot
@@ -190,8 +196,10 @@ class IterativeAimingCalculatorTest {
         
         // Target is directly ahead (X=10, Y=0)
         // Angle should be close to 0 degrees
-        assertTrue(aimAngle >= -10 && aimAngle <= 10, 
-                  "Angle to target ahead should be ~0°, got " + aimAngle);
+        assertTrue(aimAngle.isPresent(), "Aim angle should be available");
+        double angleValue = aimAngle.getAsDouble();
+        assertTrue(angleValue >= -10 && angleValue <= 10, 
+              "Angle to target ahead should be ~0°, got " + angleValue);
     }
 
     @Test
@@ -201,7 +209,7 @@ class IterativeAimingCalculatorTest {
         double targetY = 10.0;
         double timeOfFlight = 0.5;
         
-        double aimAngle = aimer.iterativePredictiveAim(
+        OptionalDouble aimAngle = aimer.iterativePredictiveAim(
             0.0, 0.0,
             targetX, targetY,
             0.0, 0.0,
@@ -212,8 +220,10 @@ class IterativeAimingCalculatorTest {
         
         // Target is directly to the side (X=0, Y=10)
         // Angle should be close to 90 degrees
-        assertTrue(aimAngle >= 80 && aimAngle <= 100,
-                  "Angle to target to side should be ~90°, got " + aimAngle);
+        assertTrue(aimAngle.isPresent(), "Aim angle should be available");
+        double angleValue = aimAngle.getAsDouble();
+        assertTrue(angleValue >= 80 && angleValue <= 100,
+              "Angle to target to side should be ~90°, got " + angleValue);
     }
 
     @Test
@@ -224,7 +234,7 @@ class IterativeAimingCalculatorTest {
         double targetVelY = 2.0;  // Moving laterally
         double timeOfFlight = 0.5;
         
-        double aimAngleStatic = aimer.iterativePredictiveAim(
+        OptionalDouble aimAngleStatic = aimer.iterativePredictiveAim(
             0.0, 0.0,
             targetX, targetY,
             0.0, 0.0,
@@ -233,7 +243,7 @@ class IterativeAimingCalculatorTest {
             5
         );
         
-        double aimAngleMoving = aimer.iterativePredictiveAim(
+        OptionalDouble aimAngleMoving = aimer.iterativePredictiveAim(
             0.0, targetVelY,
             targetX, targetY,
             0.0, 0.0,
@@ -243,8 +253,10 @@ class IterativeAimingCalculatorTest {
         );
         
         // Aim angle should be different when target is moving
-        assertNotEquals(aimAngleStatic, aimAngleMoving, DELTA,
-                       "Moving target should require different aim angle");
+        assertTrue(aimAngleStatic.isPresent(), "Aim angle should be available");
+        assertTrue(aimAngleMoving.isPresent(), "Aim angle should be available");
+        assertNotEquals(aimAngleStatic.getAsDouble(), aimAngleMoving.getAsDouble(), DELTA,
+                   "Moving target should require different aim angle");
     }
 
     @Test
@@ -256,7 +268,7 @@ class IterativeAimingCalculatorTest {
         double targetVelY = 0.8;
         double timeOfFlight = 0.3;
         
-        double angleWith1Iteration = aimer.iterativePredictiveAim(
+        OptionalDouble angleWith1Iteration = aimer.iterativePredictiveAim(
             targetVelX, targetVelY,
             targetX, targetY,
             0.0, 0.0,
@@ -265,7 +277,7 @@ class IterativeAimingCalculatorTest {
             1
         );
         
-        double angleWith10Iterations = aimer.iterativePredictiveAim(
+        OptionalDouble angleWith10Iterations = aimer.iterativePredictiveAim(
             targetVelX, targetVelY,
             targetX, targetY,
             0.0, 0.0,
@@ -275,8 +287,10 @@ class IterativeAimingCalculatorTest {
         );
         
         // Both should be reasonable angles
-        assertTrue(angleWith1Iteration >= -180 && angleWith1Iteration <= 180);
-        assertTrue(angleWith10Iterations >= -180 && angleWith10Iterations <= 180);
+        assertTrue(angleWith1Iteration.isPresent(), "Aim angle should be available");
+        assertTrue(angleWith10Iterations.isPresent(), "Aim angle should be available");
+        assertTrue(angleWith1Iteration.getAsDouble() >= -180 && angleWith1Iteration.getAsDouble() <= 180);
+        assertTrue(angleWith10Iterations.getAsDouble() >= -180 && angleWith10Iterations.getAsDouble() <= 180);
     }
 
     @Test
@@ -286,16 +300,16 @@ class IterativeAimingCalculatorTest {
         double targetY = 100.0;  // Maximum range is ~20m
         double timeOfFlight = 0.5;
         
-        assertThrows(IllegalArgumentException.class,
-                    () -> aimer.iterativePredictiveAim(
-                        0.0, 0.0,
-                        targetX, targetY,
-                        0.0, 0.0,
-                        0.0, 0.0,
-                        timeOfFlight,
-                        10
-                    ),
-                    "Should throw for unreachable target");
+        OptionalDouble aimAngle = aimer.iterativePredictiveAim(
+            0.0, 0.0,
+            targetX, targetY,
+            0.0, 0.0,
+            0.0, 0.0,
+            timeOfFlight,
+            10
+        );
+
+        assertTrue(aimAngle.isEmpty(), "Should return empty for unreachable target");
     }
 
     @Test
@@ -305,7 +319,7 @@ class IterativeAimingCalculatorTest {
         double targetY = 0.0;
         
         // Use method with default iterations
-        double aimAngle = aimer.iterativePredictiveAim(
+        OptionalDouble aimAngle = aimer.iterativePredictiveAim(
             1.0, 0.0,
             targetX, targetY,
             0.0, 0.0,
@@ -313,8 +327,10 @@ class IterativeAimingCalculatorTest {
             0.3  // Initial estimate
         );
         
-        assertTrue(aimAngle >= -180 && aimAngle <= 180,
-                  "Should return valid angle with default iterations");
+        assertTrue(aimAngle.isPresent(), "Aim angle should be available");
+        double angleValue = aimAngle.getAsDouble();
+        assertTrue(angleValue >= -180 && angleValue <= 180,
+              "Should return valid angle with default iterations");
     }
 
     @Test
@@ -325,7 +341,7 @@ class IterativeAimingCalculatorTest {
         double robotVelX = 3.0;  // Robot moving towards target
         double timeOfFlight = 0.4;
         
-        double aimAngle = aimer.iterativePredictiveAim(
+        OptionalDouble aimAngle = aimer.iterativePredictiveAim(
             0.0, 0.0,
             targetX, targetY,
             robotVelX, 0.0,
@@ -335,7 +351,9 @@ class IterativeAimingCalculatorTest {
         );
         
         // Should still calculate valid angle
-        assertTrue(aimAngle >= -180 && aimAngle <= 180);
+        assertTrue(aimAngle.isPresent(), "Aim angle should be available");
+        double angleValue = aimAngle.getAsDouble();
+        assertTrue(angleValue >= -180 && angleValue <= 180);
     }
 
     // ==================== Convergence Tests ====================
@@ -349,7 +367,7 @@ class IterativeAimingCalculatorTest {
         double targetVelY = 0.5;
         
         // Should converge without throwing
-        double aimAngle = aimer.iterativePredictiveAim(
+        OptionalDouble aimAngle = aimer.iterativePredictiveAim(
             targetVelX, targetVelY,
             targetX, targetY,
             0.0, 0.0,
@@ -359,8 +377,10 @@ class IterativeAimingCalculatorTest {
         );
         
         // Diagonal target, should aim around 45 degrees
-        assertTrue(aimAngle >= 30 && aimAngle <= 60,
-                  "Aim angle for diagonal target should be ~45°, got " + aimAngle);
+        assertTrue(aimAngle.isPresent(), "Aim angle should be available");
+        double angleValue = aimAngle.getAsDouble();
+        assertTrue(angleValue >= 30 && angleValue <= 60,
+                  "Aim angle for diagonal target should be ~45°, got " + angleValue);
     }
 
     @Test
@@ -369,7 +389,7 @@ class IterativeAimingCalculatorTest {
         double targetX = -5.0;
         double targetY = -5.0;
         
-        double aimAngle = aimer.iterativePredictiveAim(
+        OptionalDouble aimAngle = aimer.iterativePredictiveAim(
             0.0, 0.0,
             targetX, targetY,
             0.0, 0.0,
@@ -377,13 +397,15 @@ class IterativeAimingCalculatorTest {
             0.5,
             5
         );
+        assertTrue(aimAngle.isPresent(), "Aim angle should be available");
+        double aimAngleValue = aimAngle.getAsDouble();
         
         // Normalize because atan2 may return equivalent angles in [-180, 180]
-        double normalizedAimAngle = (aimAngle + 360) % 360;
+        double normalizedAimAngle = (aimAngleValue + 360) % 360;
 
         // Should aim into third quadrant (~225°)
         assertTrue(normalizedAimAngle >= 200 && normalizedAimAngle <= 250,
-                  "Angle for negative coordinates should be ~225° (or -135°), got " + aimAngle);
+                  "Angle for negative coordinates should be ~225° (or -135°), got " + aimAngleValue);
     }
 
     // ==================== Physics Validation Tests ====================
@@ -395,7 +417,7 @@ class IterativeAimingCalculatorTest {
         double targetY = 3.0;
         
         // Should complete successfully using lookup table constraints
-        double aimAngle = aimer.iterativePredictiveAim(
+        OptionalDouble aimAngle = aimer.iterativePredictiveAim(
             0.5, 0.5,
             targetX, targetY,
             0.0, 0.0,
@@ -405,8 +427,10 @@ class IterativeAimingCalculatorTest {
         );
         
         // Should find valid solution within configured constraints
-        assertFalse(Double.isNaN(aimAngle), "Should return valid angle");
-        assertFalse(Double.isInfinite(aimAngle), "Should not be infinite");
+        assertTrue(aimAngle.isPresent(), "Aim angle should be available");
+        double angleValue = aimAngle.getAsDouble();
+        assertFalse(Double.isNaN(angleValue), "Should return valid angle");
+        assertFalse(Double.isInfinite(angleValue), "Should not be infinite");
     }
 
     @Test
@@ -424,7 +448,7 @@ class IterativeAimingCalculatorTest {
         double targetY = 0.0;
         
         // Should work with custom ranges
-        double aimAngle = customAimer.iterativePredictiveAim(
+        OptionalDouble aimAngle = customAimer.iterativePredictiveAim(
             0.0, 0.0,
             targetX, targetY,
             0.0, 0.0,
@@ -433,7 +457,9 @@ class IterativeAimingCalculatorTest {
             5
         );
         
-        assertTrue(aimAngle >= -10 && aimAngle <= 10,
+        assertTrue(aimAngle.isPresent(), "Aim angle should be available");
+        double angleValue = aimAngle.getAsDouble();
+        assertTrue(angleValue >= -10 && angleValue <= 10,
                   "Custom calculator should still produce valid aim angle");
     }
 
@@ -486,7 +512,7 @@ class IterativeAimingCalculatorTest {
         assertNotNull(initialParam, "Should find parameter for this range");
         
         // Calculate iterative aim angle using lookup table
-        double aimAngle = aimer.iterativePredictiveAim(
+        OptionalDouble aimAngle = aimer.iterativePredictiveAim(
             targetVelX, targetVelY,
             targetX, targetY,
             robotVelX, robotVelY,
@@ -496,8 +522,10 @@ class IterativeAimingCalculatorTest {
         );
         
         // Verify reasonable result
-        assertTrue(aimAngle >= 10 && aimAngle <= 90,
-                  "Aim angle for this scenario should be 10-90°, got " + aimAngle);
+        assertTrue(aimAngle.isPresent(), "Aim angle should be available");
+        double angleValue = aimAngle.getAsDouble();
+        assertTrue(angleValue >= 10 && angleValue <= 90,
+                  "Aim angle for this scenario should be 10-90°, got " + angleValue);
     }
 
     @Test
@@ -507,7 +535,7 @@ class IterativeAimingCalculatorTest {
             new IterativeAimingCalculator.Coordinate(10.0, 0.0);
         
         // Predict at different times
-        IterativeAimingCalculator.Coordinate predicted05s = aimer.predictTarget(
+        Optional<IterativeAimingCalculator.Coordinate> predicted05s = aimer.predictTarget(
             1.0, 0.0,
             target.x(), target.y(),
             0.0, 0.0,
@@ -515,16 +543,18 @@ class IterativeAimingCalculatorTest {
             0.5
         );
         
-        IterativeAimingCalculator.Coordinate predicted10s = aimer.predictTarget(
+        Optional<IterativeAimingCalculator.Coordinate> predicted10s = aimer.predictTarget(
             1.0, 0.0,
             target.x(), target.y(),
             0.0, 0.0,
             0.0, 0.0,
             1.0
         );
+        assertTrue(predicted05s.isPresent(), "Prediction should be available");
+        assertTrue(predicted10s.isPresent(), "Prediction should be available");
         
         // Further in future = further position
-        assertTrue(predicted10s.x() > predicted05s.x(),
+        assertTrue(predicted10s.get().x() > predicted05s.get().x(),
                   "Target should be further ahead after longer time");
     }
 }

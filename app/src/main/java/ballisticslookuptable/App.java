@@ -82,22 +82,22 @@ public class App {
         LaunchParameter initialEstimate = calculator.getBestLaunchParameter(initialRangeEstimate);
         
         if (initialEstimate != null) {
-            try {
-                double aimAngle = aimer.iterativePredictiveAim(
-                    targetVelX, targetVelY,
-                    targetPosX, targetPosY,
-                    robotVelX, robotVelY,
-                    robotPosX, robotPosY,
-                    initialEstimate.getTimeOfFlightSeconds(),
-                    10  // Maximum 10 iterations for convergence
-                );
-                
+            java.util.OptionalDouble aimAngle = aimer.iterativePredictiveAim(
+                targetVelX, targetVelY,
+                targetPosX, targetPosY,
+                robotVelX, robotVelY,
+                robotPosX, robotPosY,
+                initialEstimate.getTimeOfFlightSeconds(),
+                10  // Maximum 10 iterations for convergence
+            );
+            
+            if (aimAngle.isPresent()) {
                 System.out.println("Target Position: (" + String.format("%.2f", targetPosX) + ", " + String.format("%.2f", targetPosY) + ") meters");
                 System.out.println("Target Velocity: (" + String.format("%.2f", targetVelX) + ", " + String.format("%.2f", targetVelY) + ") m/s");
-                System.out.println("Aim Angle: " + String.format("%.2f", aimAngle) + " degrees");
+                System.out.println("Aim Angle: " + String.format("%.2f", aimAngle.getAsDouble()) + " degrees");
                 System.out.println("(Using iterative lookup table convergence)");
-            } catch (IllegalArgumentException e) {
-                System.out.println("Error: " + e.getMessage());
+            } else {
+                System.out.println("No valid trajectory found for predicted range.");
             }
         }
     }

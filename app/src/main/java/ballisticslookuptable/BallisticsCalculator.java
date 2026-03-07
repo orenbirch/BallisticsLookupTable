@@ -3,6 +3,7 @@ package ballisticslookuptable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 
 /**
@@ -17,6 +18,9 @@ public class BallisticsCalculator {
     
     // Configuration instance containing all constraints and parameters
     private final BallisticsConfig config;
+
+    // Optional validation error if the configuration is invalid
+    private final Optional<String> validationError;
     
     /**
      * Creates a BallisticsCalculator with default configuration.
@@ -33,8 +37,10 @@ public class BallisticsCalculator {
      */
     public BallisticsCalculator(BallisticsConfig config) {
         this.config = config;
-        config.validate();
-        generateLookupTable();
+        this.validationError = config.validate();
+        if (validationError.isEmpty()) {
+            generateLookupTable();
+        }
     }
 
     /**
@@ -42,10 +48,20 @@ public class BallisticsCalculator {
      * Time complexity: O(1) if already generated; O(R * A) if it triggers table generation.
      */
     public TreeMap<Double, LaunchParameter> getLookupTable() {
+        if (validationError.isPresent()) {
+            return lookupTable;
+        }
         if (lookupTable.isEmpty()) {
             generateLookupTable();
         }
         return lookupTable;
+    }
+
+    /**
+     * Returns the configuration validation error, if any.
+     */
+    public Optional<String> getValidationError() {
+        return validationError;
     }
 
     /**
