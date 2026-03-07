@@ -20,6 +20,7 @@ public class BallisticsCalculator {
     
     /**
      * Creates a BallisticsCalculator with default configuration.
+     * Time complexity: O(R * A) due to lookup table generation.
      */
     public BallisticsCalculator() {
         this(new BallisticsConfig());
@@ -28,6 +29,7 @@ public class BallisticsCalculator {
     /**
      * Creates a BallisticsCalculator with custom configuration.
      * @param config Configuration object containing all ballistics parameters
+     * Time complexity: O(R * A) due to lookup table generation.
      */
     public BallisticsCalculator(BallisticsConfig config) {
         this.config = config;
@@ -35,6 +37,10 @@ public class BallisticsCalculator {
         generateLookupTable();
     }
 
+    /**
+     * Returns the lookup table, generating it if needed.
+     * Time complexity: O(1) if already generated; O(R * A) if it triggers table generation.
+     */
     public TreeMap<Double, LaunchParameter> getLookupTable() {
         if (lookupTable.isEmpty()) {
             generateLookupTable();
@@ -42,6 +48,10 @@ public class BallisticsCalculator {
         return lookupTable;
     }
 
+    /**
+     * Builds the lookup table of best launch parameters by range.
+     * Time complexity: O(R * A).
+     */
     private void generateLookupTable() {
         for (double range = config.getMinRange(); range <= config.getMaxRange(); range += config.getRangeStep()) {
             List<LaunchParameter> parameters = new ArrayList<LaunchParameter>();
@@ -116,6 +126,10 @@ public class BallisticsCalculator {
         }
     }
 
+    /**
+     * Returns the best launch parameter for the given range.
+     * Time complexity: O(log N).
+     */
     public LaunchParameter getBestLaunchParameter(double range) {
         Map.Entry<Double, LaunchParameter> floorEntry = lookupTable.floorEntry(range);
         Map.Entry<Double, LaunchParameter> ceilingEntry = lookupTable.ceilingEntry(range);

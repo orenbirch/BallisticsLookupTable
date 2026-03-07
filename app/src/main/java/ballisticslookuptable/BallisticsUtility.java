@@ -10,6 +10,7 @@ public class BallisticsUtility {
      * @param launchAngleDeg The angle at which the projectile is launched, in degrees.
      * @param launchVelocityMps The initial velocity of the projectile (m/s).
      * @return The time of flight of the projectile.
+        * Time complexity: O(1).
      */
     public static double calculateFlightTimeFromRange(double rangeMeters, double targetElevationMeters, double launchAngleDeg, double launchVelocityMps) {
         // Calculate time from horizontal motion (always accurate)
@@ -34,6 +35,7 @@ public class BallisticsUtility {
      * @param launchVelocityMps The initial velocity of the projectile (m/s).
      * @param initialHeightMeters The initial height of the launcher (meters).
      * @return The time of flight of the projectile.
+        * Time complexity: O(1).
      */
     public static double calculateFlightTimeFromVerticalMotion(double launchAngleDeg, double launchVelocityMps, double initialHeightMeters) {
         double vy = launchVelocityMps * Math.sin(Math.toRadians(launchAngleDeg));
@@ -53,6 +55,7 @@ public class BallisticsUtility {
      * @param launchVelocityMps The initial velocity of the projectile (m/s).
      * @param launchAngleDeg The angle at which the projectile is launched, in degrees.
      * @return The time of flight of the projectile.
+        * Time complexity: O(1).
      */
     public static double calculateFlightTimeFromElevation(double elevationMeters, double launchVelocityMps, double launchAngleDeg) {
         // Vertical component of velocity
@@ -90,6 +93,7 @@ public class BallisticsUtility {
      * @param launchVelocityMps Launch velocity (m/s)
      * @param launchAngleDeg Launch angle (degrees from horizontal)
      * @return Angle at target in radians (negative = downward), or NaN if trajectory is invalid
+        * Time complexity: O(1).
      */
     public static double calculateImpactAngleAtTarget(double rangeMeters, double elevationMeters, double launchVelocityMps, double launchAngleDeg) {
         // Calculate time of flight
@@ -121,6 +125,7 @@ public class BallisticsUtility {
      * @param launchAngleDeg Launch angle (degrees from horizontal)
      * @param launcherHeightMeters Height of launcher above ground (meters)
      * @return Maximum height above ground in meters
+        * Time complexity: O(1).
      */
     public static double calculatePeakHeight(double launchVelocityMps, double launchAngleDeg, double launcherHeightMeters) {
         // Vertical velocity component
@@ -142,6 +147,7 @@ public class BallisticsUtility {
      * @param elevationMeters Vertical distance to target (meters, positive = above launcher)
      * @param launchAngleDeg Launch angle in degrees (from horizontal)
      * @return Required launch velocity in m/s, or -1 if impossible
+        * Time complexity: O(1).
      */
     public static double calculateLaunchVelocityForRange(double rangeMeters, double elevationMeters, double launchAngleDeg) {
         double cosAngle = Math.cos(Math.toRadians(launchAngleDeg));
