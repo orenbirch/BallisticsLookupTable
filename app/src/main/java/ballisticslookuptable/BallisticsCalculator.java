@@ -58,6 +58,12 @@ public class BallisticsCalculator {
             LaunchParameter bestParam = null;
             for (double angle = config.getMinLaunchAngleDeg(); angle <= config.getMaxLaunchAngleDeg(); angle += config.getAngleStep()) {
                 LaunchParameter param = new LaunchParameter(angle, range, config.getTargetElevationMeters());
+                if (Double.isNaN(param.getImpactAngleDeg())) {
+                    continue; // Skip trajectories with invalid impact angle
+                }
+                if (Double.isNaN(param.getTimeOfFlightSeconds()) || param.getTimeOfFlightSeconds() < 0) {
+                    continue; // Skip trajectories with invalid time of flight
+                }
                 if (param.getLaunchVelocityMps() <= config.getMinLaunchVelocityMps() || param.getLaunchVelocityMps() > config.getMaxLaunchVelocityMps()) {
                     continue; // Skip trajectories that are not physically possible
                 }

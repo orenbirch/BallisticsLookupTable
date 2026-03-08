@@ -96,8 +96,9 @@ public class BallisticsUtility {
         * Time complexity: O(1).
      */
     public static double calculateImpactAngleAtTarget(double rangeMeters, double elevationMeters, double launchVelocityMps, double launchAngleDeg) {
-        // Calculate time of flight
-        double timeOfFlight = calculateFlightTimeFromElevation(elevationMeters, launchVelocityMps, launchAngleDeg);
+        //# Time to reach horizontal distance r
+        // t = r / (v0 * cos(theta))
+        double timeOfFlight = rangeMeters / (launchVelocityMps * Math.cos(Math.toRadians(launchAngleDeg)));
 
         if(timeOfFlight < 0) {
             return Double.NaN; // Invalid trajectory

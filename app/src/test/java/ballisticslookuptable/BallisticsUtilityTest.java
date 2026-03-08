@@ -243,6 +243,22 @@ class BallisticsUtilityTest {
         assertTrue(impactAngle < -60, "Steep launch angle should have steep (very negative) impact");
     }
 
+    @Test
+    @DisplayName("Calculate impact angle to match python code reference implementation")
+    void testCalculateImpactAngle_PythonReference() {
+        // This test uses a known reference implementation in Python to validate the Java code
+        double range = 1.7;
+        double elevation = 1.0;
+        double velocity = 13.92;
+        double angle = 33.0;
+        
+        double impactAngle = BallisticsUtility.calculateImpactAngleAtTarget(range, elevation, velocity, angle);
+        
+        // Reference value from Python implementation (calculated separately)
+        double expectedImpactAngle = 27.79; // Example reference value 27.79°
+        assertEquals(expectedImpactAngle, impactAngle, 0.01, "Impact angle should match Python reference");
+    }
+
     // ==================== calculateFlightTimeFromElevation Tests ====================
 
     @Test

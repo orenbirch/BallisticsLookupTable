@@ -21,11 +21,11 @@ public class App {
             .setTimeOfFlightWeight(0.25) // weight for time of flight in scoring
             // target parameters
             .setTargetElevationMeters(1) // 0.0 is at the same height as the launcher, negative means target is below launcher
-            .setMinPeakHeight(1.2) 
+            .setMinPeakHeight(1.5) 
             .setMaxPeakHeight(3) // height above launch point
             // robot constraints
-            .setMinLaunchAngleDeg(10)
-            .setMaxLaunchAngleDeg(80)
+            .setMinLaunchAngleDeg(30)
+            .setMaxLaunchAngleDeg(81)
             .setMaxLaunchVelocityMps(15) // max velocity constraint for shooter mechanism
             .setMinLaunchVelocityMps(2); // min velocity constraint for shooter mechanism
 
