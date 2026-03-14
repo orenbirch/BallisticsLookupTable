@@ -318,5 +318,225 @@ public class IterativeAimingCalculator {
             10  // Default to 10 iterations for convergence
         );
     }
+
+    // ==================== Rotating robot (omega) overloads ====================
+
+    /**
+     * Predicts where a moving target will be, accounting for the robot's own rotation.
+     *
+     * When the robot spins at {@code robotOmega} rad/s, the shooter (mounted at
+     * {@code shooterOffsetX, shooterOffsetY} from the robot's center of rotation in the
+     * field frame) has an additional tangential velocity:
+     * <pre>
+     *   vx_shooter = robotVelocityX - robotOmega * shooterOffsetY
+     *   vy_shooter = robotVelocityY + robotOmega * shooterOffsetX
+     * </pre>
+     *
+     * @param targetVelocityX   Target velocity in X direction (m/s)
+     * @param targetVelocityY   Target velocity in Y direction (m/s)
+     * @param targetPositionX   Target X position (m)
+     * @param targetPositionY   Target Y position (m)
+     * @param robotVelocityX    Robot translational velocity in X direction (m/s)
+     * @param robotVelocityY    Robot translational velocity in Y direction (m/s)
+     * @param robotPositionX    Robot center X position (m)
+     * @param robotPositionY    Robot center Y position (m)
+     * @param robotOmega        Robot angular velocity (rad/s, CCW positive)
+     * @param shooterOffsetX    Shooter offset from robot center in X direction, in field frame (m)
+     * @param shooterOffsetY    Shooter offset from robot center in Y direction, in field frame (m)
+     * @param timeOfFlightSeconds Time of flight (seconds)
+     * @return Predicted target coordinates relative to the shooter
+     * Time complexity: O(1).
+     */
+    public Coordinate predictTarget(
+        double targetVelocityX, double targetVelocityY,
+        double targetPositionX, double targetPositionY,
+        double robotVelocityX, double robotVelocityY,
+        double robotPositionX, double robotPositionY,
+        double robotOmega,
+        double shooterOffsetX, double shooterOffsetY,
+        double timeOfFlightSeconds
+    ) {
+        if (timeOfFlightSeconds < 0) {
+            throw new IllegalArgumentException("timeOfFlightSeconds must be >= 0");
+        }
+
+        // Effective shooter position in field frame
+        double shooterPositionX = robotPositionX + shooterOffsetX;
+        double shooterPositionY = robotPositionY + shooterOffsetY;
+
+        // Effective shooter velocity: robot translation + tangential from rotation
+        // A point at offset (dx, dy) rotating at omega has tangential velocity (-omega*dy, omega*dx)
+        double shooterVelocityX = robotVelocityX - robotOmega * shooterOffsetY;
+        double shooterVelocityY = robotVelocityY + robotOmega * shooterOffsetX;
+
+        double distanceX = targetPositionX - shooterPositionX;
+        double distanceY = targetPositionY - shooterPositionY;
+
+        double velocityX = targetVelocityX - shooterVelocityX;
+        double velocityY = targetVelocityY - shooterVelocityY;
+
+        double virtualX = distanceX + (velocityX * timeOfFlightSeconds);
+        double virtualY = distanceY + (velocityY * timeOfFlightSeconds);
+
+        return new Coordinate(virtualX, virtualY);
+    }
+
+    /**
+     * Calculates the predicted coordinate of the target accounting for robot rotation.
+     *
+     * @param targetVelocityX   Target velocity in X direction (m/s)
+     * @param targetVelocityY   Target velocity in Y direction (m/s)
+     * @param targetPositionX   Target X position (m)
+     * @param targetPositionY   Target Y position (m)
+     * @param robotVelocityX    Robot translational velocity in X direction (m/s)
+     * @param robotVelocityY    Robot translational velocity in Y direction (m/s)
+     * @param robotPositionX    Robot center X position (m)
+     * @param robotPositionY    Robot center Y position (m)
+     * @param robotOmega        Robot angular velocity (rad/s, CCW positive)
+     * @param shooterOffsetX    Shooter offset from robot center in X direction, in field frame (m)
+     * @param shooterOffsetY    Shooter offset from robot center in Y direction, in field frame (m)
+     * @param initialTimeOfFlightSeconds Initial time of flight estimate (seconds)
+     * @param maxIterations     Maximum number of iterations for convergence
+     * @return Predicted target coordinates relative to the shooter
+     * Time complexity: O(I * log N).
+     */
+    public Coordinate interativePredictCoordinate(
+        double targetVelocityX, double targetVelocityY,
+        double targetPositionX, double targetPositionY,
+        double robotVelocityX, double robotVelocityY,
+        double robotPositionX, double robotPositionY,
+        double robotOmega,
+        double shooterOffsetX, double shooterOffsetY,
+        double initialTimeOfFlightSeconds,
+        int maxIterations
+    ) {
+        double timeOfFlight = initialTimeOfFlightSeconds;
+        Coordinate predictedTarget = null;
+        double previousDistance = Double.MAX_VALUE;
+
+        for (int iteration = 0; iteration < maxIterations; iteration++) {
+            predictedTarget = predictTarget(
+                targetVelocityX, targetVelocityY,
+                targetPositionX, targetPositionY,
+                robotVelocityX, robotVelocityY,
+                robotPositionX, robotPositionY,
+                robotOmega,
+                shooterOffsetX, shooterOffsetY,
+                timeOfFlight
+            );
+
+            double distanceToPredictedTarget = Math.sqrt(
+                Math.pow(predictedTarget.x(), 2) +
+                Math.pow(predictedTarget.y(), 2)
+            );
+
+            double minSupportedRange = ballisticsCalculator.getLookupTable().firstKey();
+            double maxSupportedRange = ballisticsCalculator.getLookupTable().lastKey();
+            double supportedRangeTolerance = 0.0;
+            if (ballisticsCalculator.getLookupTable().size() > 1) {
+                Double secondKey = ballisticsCalculator.getLookupTable().higherKey(minSupportedRange);
+                if (secondKey != null) {
+                    supportedRangeTolerance = Math.abs(secondKey - minSupportedRange);
+                }
+            }
+
+            if (distanceToPredictedTarget < minSupportedRange - supportedRangeTolerance ||
+                distanceToPredictedTarget > maxSupportedRange + supportedRangeTolerance) {
+                throw new IllegalArgumentException(
+                    "No valid trajectory found for predicted range: " + distanceToPredictedTarget +
+                    " meters (supported range: " + minSupportedRange + " to " + maxSupportedRange + " m)"
+                );
+            }
+
+            if (Math.abs(distanceToPredictedTarget - previousDistance) < 0.01) {
+                break;
+            }
+            previousDistance = distanceToPredictedTarget;
+
+            LaunchParameter bestParam = ballisticsCalculator.getBestLaunchParameter(distanceToPredictedTarget);
+            if (bestParam == null) {
+                throw new IllegalArgumentException(
+                    "No valid trajectory found for predicted range: " + distanceToPredictedTarget + " meters"
+                );
+            }
+
+            timeOfFlight = bestParam.getTimeOfFlightSeconds();
+        }
+
+        if (predictedTarget == null) {
+            throw new IllegalStateException("No target prediction calculated");
+        }
+        return predictedTarget;
+    }
+
+    /**
+     * Calculates the aiming angle to a moving target, accounting for robot rotation.
+     *
+     * @param targetVelocityX   Target velocity in X direction (m/s)
+     * @param targetVelocityY   Target velocity in Y direction (m/s)
+     * @param targetPositionX   Target X position (m)
+     * @param targetPositionY   Target Y position (m)
+     * @param robotVelocityX    Robot translational velocity in X direction (m/s)
+     * @param robotVelocityY    Robot translational velocity in Y direction (m/s)
+     * @param robotPositionX    Robot center X position (m)
+     * @param robotPositionY    Robot center Y position (m)
+     * @param robotOmega        Robot angular velocity (rad/s, CCW positive)
+     * @param shooterOffsetX    Shooter offset from robot center in X direction, in field frame (m)
+     * @param shooterOffsetY    Shooter offset from robot center in Y direction, in field frame (m)
+     * @param initialTimeOfFlightSeconds Initial time of flight estimate (seconds)
+     * @param maxIterations     Maximum number of iterations for convergence
+     * @return Aiming angle in degrees (from +X axis)
+     * @throws IllegalArgumentException if no valid trajectory found for predicted range
+     * Time complexity: O(I * log N).
+     */
+    public double iterativePredictiveAim(
+        double targetVelocityX, double targetVelocityY,
+        double targetPositionX, double targetPositionY,
+        double robotVelocityX, double robotVelocityY,
+        double robotPositionX, double robotPositionY,
+        double robotOmega,
+        double shooterOffsetX, double shooterOffsetY,
+        double initialTimeOfFlightSeconds,
+        int maxIterations
+    ) {
+        Coordinate predictedTarget = interativePredictCoordinate(
+            targetVelocityX, targetVelocityY,
+            targetPositionX, targetPositionY,
+            robotVelocityX, robotVelocityY,
+            robotPositionX, robotPositionY,
+            robotOmega,
+            shooterOffsetX, shooterOffsetY,
+            initialTimeOfFlightSeconds,
+            maxIterations
+        );
+        double headingToVirtualTarget = Math.atan2(predictedTarget.y(), predictedTarget.x());
+        return Math.toDegrees(headingToVirtualTarget);
+    }
+
+    /**
+     * Simplified variant of the rotating-robot aim that uses a default number of iterations.
+     * @see #iterativePredictiveAim(double, double, double, double, double, double, double, double, double, double, double, double, int)
+     * Time complexity: O(log N) with a constant default iteration count.
+     */
+    public double iterativePredictiveAim(
+        double targetVelocityX, double targetVelocityY,
+        double targetPositionX, double targetPositionY,
+        double robotVelocityX, double robotVelocityY,
+        double robotPositionX, double robotPositionY,
+        double robotOmega,
+        double shooterOffsetX, double shooterOffsetY,
+        double initialTimeOfFlightSeconds
+    ) {
+        return iterativePredictiveAim(
+            targetVelocityX, targetVelocityY,
+            targetPositionX, targetPositionY,
+            robotVelocityX, robotVelocityY,
+            robotPositionX, robotPositionY,
+            robotOmega,
+            shooterOffsetX, shooterOffsetY,
+            initialTimeOfFlightSeconds,
+            10
+        );
+    }
 }
  
