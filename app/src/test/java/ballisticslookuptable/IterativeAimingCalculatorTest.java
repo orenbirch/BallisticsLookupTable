@@ -527,4 +527,155 @@ class IterativeAimingCalculatorTest {
         assertTrue(predicted10s.x() > predicted05s.x(),
                   "Target should be further ahead after longer time");
     }
+
+    // ==================== Rotating Robot (omega) Tests ====================
+
+    @Test
+    @DisplayName("predictTarget with omega=0 and no offset should match non-rotating overload")
+    void testPredictTarget_ZeroOmega_MatchesBaseline() {
+        double targetVX = 1.0, targetVY = 0.5;
+        double targetX = 8.0, targetY = 3.0;
+        double robotVX = 0.5, robotVY = 0.0;
+        double robotX = 0.0, robotY = 0.0;
+        double tof = 0.4;
+
+        IterativeAimingCalculator.Coordinate baseline = aimer.predictTarget(
+            targetVX, targetVY, targetX, targetY,
+            robotVX, robotVY, robotX, robotY,
+            tof
+        );
+        IterativeAimingCalculator.Coordinate withOmega = aimer.predictTarget(
+            targetVX, targetVY, targetX, targetY,
+            robotVX, robotVY, robotX, robotY,
+            0.0,   // omega = 0
+            0.0, 0.0,  // no offset
+            tof
+        );
+
+        assertEquals(baseline.x(), withOmega.x(), 1e-9, "X should match with omega=0 and no offset");
+        assertEquals(baseline.y(), withOmega.y(), 1e-9, "Y should match with omega=0 and no offset");
+    }
+
+    @Test
+    @DisplayName("predictTarget should shift predicted position when shooter is offset from robot center")
+    void testPredictTarget_ShooterOffset_ShiftsPosition() {
+        // Stationary scenario so velocity effects are zero; only offset matters
+        double targetX = 10.0, targetY = 0.0;
+        double robotX = 0.0, robotY = 0.0;
+        double offsetX = 0.5, offsetY = 0.0;
+        double tof = 0.0;
+
+        IterativeAimingCalculator.Coordinate coord = aimer.predictTarget(
+            0.0, 0.0, targetX, targetY,
+            0.0, 0.0, robotX, robotY,
+            0.0, offsetX, offsetY,
+            tof
+        );
+
+        // Distance from shooter (at 0.5, 0) to target (10, 0) = 9.5
+        assertEquals(targetX - offsetX, coord.x(), 1e-9, "X distance should account for shooter offset");
+        assertEquals(targetY - offsetY, coord.y(), 1e-9, "Y distance should account for shooter offset");
+    }
+
+    @Test
+    @DisplayName("predictTarget: rotating robot imparts tangential velocity to shooter")
+    void testPredictTarget_OmegaImpartsTangentialVelocity() {
+        // Robot spinning CCW at 1 rad/s, shooter at (0, 1) offset from center.
+        // Tangential velocity of shooter: vx = -omega*dy = -1*1 = -1, vy = omega*dx = 1*0 = 0
+        // So effective shooter velocity = (0 + (-1), 0 + 0) = (-1, 0)
+        // With a stationary target at (5, 1) relative to field, tof = 1s:
+        //   distanceX = 5 - 0 = 5 (shooter at (0,1) in field, target at (5,1))
+        //   distanceY = 1 - 1 = 0
+        //   velocityX = 0 - (-1) = 1
+        //   velocityY = 0 - 0 = 0
+        //   virtualX = 5 + 1*1 = 6
+        //   virtualY = 0
+        double robotX = 0.0, robotY = 0.0;
+        double offsetX = 0.0, offsetY = 1.0;
+        double omega = 1.0;  // 1 rad/s CCW
+        double targetX = 5.0, targetY = 1.0;
+        double tof = 1.0;
+
+        IterativeAimingCalculator.Coordinate coord = aimer.predictTarget(
+            0.0, 0.0, targetX, targetY,
+            0.0, 0.0, robotX, robotY,
+            omega, offsetX, offsetY,
+            tof
+        );
+
+        assertEquals(6.0, coord.x(), 1e-9, "Tangential velocity should push virtual target further in X");
+        assertEquals(0.0, coord.y(), 1e-9, "Y component should be zero");
+    }
+
+    @Test
+    @DisplayName("predictTarget: negative omega (CW rotation) reverses tangential velocity")
+    void testPredictTarget_NegativeOmega_ReversesTangentialVelocity() {
+        // Same setup as above but omega = -1 (CW)
+        // Tangential velocity: vx = -(-1)*1 = 1, vy = (-1)*0 = 0
+        // distanceX = 5, distanceY = 0, velocityX = 0 - 1 = -1
+        // virtualX = 5 + (-1)*1 = 4
+        double offsetX = 0.0, offsetY = 1.0;
+        double omega = -1.0;
+        double targetX = 5.0, targetY = 1.0;
+        double tof = 1.0;
+
+        IterativeAimingCalculator.Coordinate coord = aimer.predictTarget(
+            0.0, 0.0, targetX, targetY,
+            0.0, 0.0, 0.0, 0.0,
+            omega, offsetX, offsetY,
+            tof
+        );
+
+        assertEquals(4.0, coord.x(), 1e-9, "CW rotation should shift virtual target in opposite direction");
+        assertEquals(0.0, coord.y(), 1e-9, "Y component should be zero");
+    }
+
+    @Test
+    @DisplayName("iterativePredictiveAim with omega=0 and no offset should match baseline aim")
+    void testIterativePredictiveAim_ZeroOmega_MatchesBaseline() {
+        double targetVX = 0.0, targetVY = 0.0;
+        double targetX = 8.0, targetY = 0.0;
+        double robotVX = 0.0, robotVY = 0.0;
+        double robotX = 0.0, robotY = 0.0;
+        double initTof = 0.5;
+
+        double baseline = aimer.iterativePredictiveAim(
+            targetVX, targetVY, targetX, targetY,
+            robotVX, robotVY, robotX, robotY,
+            initTof
+        );
+        double withOmega = aimer.iterativePredictiveAim(
+            targetVX, targetVY, targetX, targetY,
+            robotVX, robotVY, robotX, robotY,
+            0.0, 0.0, 0.0,
+            initTof
+        );
+
+        assertEquals(baseline, withOmega, DELTA, "Aim angle should match baseline when omega=0 and offset=0");
+    }
+
+    @Test
+    @DisplayName("iterativePredictiveAim with omega should differ from no-omega baseline for non-zero offset")
+    void testIterativePredictiveAim_OmegaWithOffset_DiffersFromBaseline() {
+        // Robot spinning CCW at 1 rad/s, shooter offset 0.3m in Y
+        // This imparts -0.3 m/s in X to the shooter, affecting the aim angle
+        double targetX = 8.0, targetY = 0.0;
+        double initTof = 0.5;
+
+        double baseline = aimer.iterativePredictiveAim(
+            0.0, 0.0, targetX, targetY,
+            0.0, 0.0, 0.0, 0.0,
+            initTof
+        );
+        double withOmega = aimer.iterativePredictiveAim(
+            0.0, 0.0, targetX, targetY,
+            0.0, 0.0, 0.0, 0.0,
+            1.0,   // omega = 1 rad/s
+            0.0, 0.3,  // shooter 0.3m above center
+            initTof
+        );
+
+        assertNotEquals(baseline, withOmega, DELTA,
+            "Aim angle should differ when robot is rotating and shooter has offset");
+    }
 }
