@@ -92,23 +92,32 @@ public class BallisticsUtility {
      * @param elevationMeters Vertical distance to target (meters, positive = above launcher)
      * @param launchVelocityMps Launch velocity (m/s)
      * @param launchAngleDeg Launch angle (degrees from horizontal)
-     * @return Angle at target in radians (negative = downward), or NaN if trajectory is invalid
+     * @return Angle at target in degrees (negative = downward), or NaN if trajectory is invalid
         * Time complexity: O(1).
      */
     public static double calculateImpactAngleAtTarget(double rangeMeters, double elevationMeters, double launchVelocityMps, double launchAngleDeg) {
         //# Time to reach horizontal distance r
         // t = r / (v0 * cos(theta))
-        double timeOfFlight = rangeMeters / (launchVelocityMps * Math.cos(Math.toRadians(launchAngleDeg)));
+        double vx = launchVelocityMps * Math.cos(Math.toRadians(launchAngleDeg));
 
-        if(timeOfFlight < 0) {
+        if (vx == 0) {
+            return Double.NaN; // No horizontal motion, cannot reach range
+        }
+
+        double timeOfFlight = rangeMeters / vx;
+
+        if(timeOfFlight < 0 || !Double.isFinite(timeOfFlight)) {
             return Double.NaN; // Invalid trajectory
         }
 
-        // Horizontal velocity component (constant throughout flight)
-        double vx = launchVelocityMps * Math.cos(Math.toRadians(launchAngleDeg));
-
         // Vertical velocity component at launch
         double vy0 = launchVelocityMps * Math.sin(Math.toRadians(launchAngleDeg));
+
+        // Ensure the trajectory actually passes through the requested target height.
+        double actualElevationAtRange = (vy0 * timeOfFlight) - (0.5 * GRAVITY * timeOfFlight * timeOfFlight);
+        if (Math.abs(actualElevationAtRange - elevationMeters) > 0.01) {
+            return Double.NaN;
+        }
 
         // Vertical velocity at target (affected by gravity)
         // vy = vy0 - g*t

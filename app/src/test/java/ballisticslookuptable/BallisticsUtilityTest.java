@@ -181,7 +181,7 @@ class BallisticsUtilityTest {
     void testCalculateImpactAngle_LevelGround() {
         double range = 10.0;
         double elevation = 0.0;
-        double velocity = 15.0;
+        double velocity = Math.sqrt(GRAVITY * range); // Ensures hit on level ground at 45°
         double angle = 45.0;
         
         double impactAngle = BallisticsUtility.calculateImpactAngleAtTarget(range, elevation, velocity, angle);
@@ -209,8 +209,8 @@ class BallisticsUtilityTest {
     void testCalculateImpactAngle_UpwardTarget() {
         double range = 5.0;
         double elevation = 3.0;
-        double velocity = 20.0;
         double angle = 70.0;
+        double velocity = BallisticsUtility.calculateLaunchVelocityForRange(range, elevation, angle);
         
         double impactAngle = BallisticsUtility.calculateImpactAngleAtTarget(range, elevation, velocity, angle);
         
@@ -235,8 +235,8 @@ class BallisticsUtilityTest {
     void testCalculateImpactAngle_SteepLaunch() {
         double range = 5.0;
         double elevation = 0.0;
-        double velocity = 20.0;
         double angle = 80.0;
+        double velocity = BallisticsUtility.calculateLaunchVelocityForRange(range, elevation, angle);
         
         double impactAngle = BallisticsUtility.calculateImpactAngleAtTarget(range, elevation, velocity, angle);
         
